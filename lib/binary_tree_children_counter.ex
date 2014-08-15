@@ -9,69 +9,63 @@ defmodule BinaryTreeChildrenCounter do
 
   def run do
     FindNodes.set_children_counts_to_zero
-    all_nodes = FindNodes.find_all
-    agent = Enum.reduce(all_nodes, HashDict.new, fn (node, acc)->
-      acc = HashDict.put(acc, node.id, node)
-    end)
-    root = FindNodes.find_root(agent)
-    run_step(root, agent)
+    all_nodes = build_node_cache
+    root = FindNodes.find_root(all_nodes)
+    run_step(root, all_nodes)
   end
 
-  def run_step(node, agent) do
+  def run_step(false, _) do
+    false
+  end
+
+  def run_step(nil, _) do
+    false
+  end
+
+  def run_step(node, all_nodes) do
     if node.children_count_left == 0 do
-      left_node = find_node_by_id(node.left_node_id, agent)
+      left_node = find_node_by_id(node.left_node_id, all_nodes)
       if left_node do
-        run = fn ->
-          run_step(left_node, agent)
-        end
+        run = fn -> run_step(left_node, all_nodes) end
       end
     end
     if node.children_count_right == 0 do
-      right_node = find_node_by_id(node.right_node_id, agent)
+      right_node = find_node_by_id(node.right_node_id, all_nodes)
       if right_node do
-        run = fn ->
-          run_step(right_node, agent)
-        end
+        run = fn -> run_step(right_node, all_nodes) end
       end
     end
     if !right_node && !left_node do
-      run = fn ->
-        go_up(find_node_by_id(node.parent_id, agent), node, agent)
-      end
+      run = fn -> go_up(find_node_by_id(node.parent_id, all_nodes), node, all_nodes) end
     end
     run.()
   end
 
-  def go_up(false, _, agent) do
-    FindNodes.update_all(HashDict.values(agent))
-    :success
+  def go_up(false, _, all_nodes) do
+    FindNodes.update_all(HashDict.values(all_nodes))
+    {:ok, "binary tree children counting went successfull"}
   end
 
-  def go_up(parent, child, agent) do
+  def go_up(parent, child, all_nodes) do
     cond do
       parent.left_node_id == child.id ->
         new_parent = %{parent | children_count_left: child.children_count_right + child.children_count_left + 1}
-        agent = HashDict.put(agent, new_parent.id, new_parent)
+        all_nodes = HashDict.put(all_nodes, new_parent.id, new_parent)
       parent.right_node_id == child.id ->
         new_parent = %{parent | children_count_right: child.children_count_right + child.children_count_left + 1}
-        agent = HashDict.put(agent, new_parent.id, new_parent)
+        all_nodes = HashDict.put(all_nodes, new_parent.id, new_parent)
     end
-    run_step(new_parent, agent)
+    run_step(new_parent, all_nodes)
   end
 
-  def find_node_by_id(0, _) do
-    false
+  def find_node_by_id(node_id, all_nodes) do
+    HashDict.get(all_nodes, node_id, false)
   end
 
-  def find_node_by_id(node_id, agent) do
-    HashDict.get(agent, node_id)
-  end
-
-  def parse_result({:success, node}) do
-    node
-  end
-
-  def parse_result({:not_found, _}) do
-    false
+  defp build_node_cache do
+    all_nodes = FindNodes.find_all 
+    Enum.reduce(all_nodes, HashDict.new, fn (node, acc)->
+      HashDict.put(acc, node.id, node)
+    end)
   end
 end

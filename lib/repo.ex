@@ -4,9 +4,9 @@ defmodule Repo do
   def conf do
     case Mix.env do
       :dev ->
-        parse_url "ecto://postgres:sapkaja21@localhost/bonofa_main_development"
+        parse_url "ecto://postgres:sapkaja21@localhost/bonofa_main_development?size=1"
       :test ->
-        parse_url "ecto://postgres:sapkaja21@localhost/bonofa_main_test"
+        parse_url "ecto://postgres:sapkaja21@localhost/bonofa_main_test?size=1"
     end
   end
 end
