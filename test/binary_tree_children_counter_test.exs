@@ -3,8 +3,8 @@ defmodule BinaryTreeChildrenCounterTest do
 
   test "worker" do
     repo = Repo.start_link
-    # { :ok, pid  } = Postgrex.Connection.start_link([hostname: "localhost", username: "postgres", password: "sapkaja21", database: "bonofa_main_test"])
-    # Postgrex.Connection.query(pid, "ALTER SEQUENCE binary_tree_nodes_id_seq RESTART")
+    { :ok, pid  } = Postgrex.Connection.start_link([hostname: "localhost", username: "postgres", password: "sapkaja21", database: "bonofa_main_test"])
+    Postgrex.Connection.query(pid, "ALTER SEQUENCE binary_tree_nodes_id_seq RESTART")
 
     Repo.transaction(fn ->
       level_widths = calculate_level_width(3)
