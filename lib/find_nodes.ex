@@ -19,21 +19,37 @@ defmodule FindNodes do
   end
 
   def update_all(records) do
-    { :ok, pid  } = Postgrex.Connection.start_link([hostname: "localhost", username: "postgres", password: "sapkaja21", database: "bonofa_main_development"])
-    create_tmp_table = Postgrex.Connection.query(pid, "CREATE TEMP TABLE tmp_binary_tree_nodes AS SELECT * FROM binary_tree_nodes LIMIT 0;")
-    query = Enum.reduce(records, "INSERT INTO tmp_binary_tree_nodes (id, children_count_left, children_count_right) VALUES ", fn (r, c) ->
+    create_tmp_table_for_binary_nodes 
+    insert_binary_tree_calculation_result_to_tmp_table(records)
+    update_real_table_with_tmp_table_results
+    drop_tmp_table
+    :success
+  end
+
+  def create_tmp_table_for_binary_nodes do
+    Ecto.Adapters.Postgres.query(Repo, "CREATE TABLE tmp_binary_tree_nodes AS SELECT * FROM binary_tree_nodes LIMIT 0;", [])
+  end
+
+  def insert_binary_tree_calculation_result_to_tmp_table(records) do
+    query = Enum.reduce(records, "INSERT INTO \"tmp_binary_tree_nodes\" (id, children_count_left, children_count_right) VALUES ", fn (r, c) ->
       c <> " (#{r.id}, #{r.children_count_left}, #{r.children_count_right}), "
     end)
     query = String.replace(query <> ";", "), ;", ");")
-    Postgrex.Connection.query(pid, query)
+    Ecto.Adapters.Postgres.query(Repo, query, [])
+  end
+
+  def update_real_table_with_tmp_table_results do
     update_query = "
     UPDATE binary_tree_nodes AS btn 
     SET children_count_left = tbtn.children_count_left, children_count_right = tbtn.children_count_right
     FROM tmp_binary_tree_nodes AS tbtn 
     WHERE tbtn.id = btn.id"
-    Postgrex.Connection.query(pid, update_query)
-    Postgrex.Connection.query(pid, "DROP TABLE tmp_binary_tree_nodes")
-    :success
+    Ecto.Adapters.Postgres.query(Repo, update_query, [])
+  end
+
+  def drop_tmp_table do
+    drop_query= "DROP TABLE tmp_binary_tree_nodes"
+    Ecto.Adapters.Postgres.query(Repo, drop_query, [])
   end
 
   def receive_message(a, a) do
