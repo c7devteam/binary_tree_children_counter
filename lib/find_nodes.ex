@@ -19,15 +19,23 @@ defmodule FindNodes do
   end
 
   def update_all(records) do
-    { :ok, pid  } = Postgrex.Connection.start_link([hostname: "localhost", username: "postgres", password: "sapkaja21", database: "bonofa_main_test"])
-
-    query = Enum.reduce(records, "", fn (r, c) -> 
-      c <> "UPDATE binary_tree_nodes SET children_count_left = #{r.children_count_left}, children_count_right = #{r.children_count_right} WHERE id = #{r.id};"
+    { :ok, pid  } = Postgrex.Connection.start_link([hostname: "localhost", username: "postgres", password: "sapkaja21", database: "bonofa_main_development"])
+    create_tmp_table = Postgrex.Connection.query(pid, "CREATE TEMP TABLE tmp_binary_tree_nodes AS SELECT * FROM binary_tree_nodes LIMIT 0;")
+    query = Enum.reduce(records, "INSERT INTO tmp_binary_tree_nodes (id, children_count_left, children_count_right) VALUES ", fn (r, c) ->
+      c <> " (#{r.id}, #{r.children_count_left}, #{r.children_count_right}), "
     end)
-    result = Postgrex.Connection.query(pid, query)
+    query = String.replace(query <> ";", "), ;", ");")
+    Postgrex.Connection.query(pid, query)
+    update_query = "
+    UPDATE binary_tree_nodes AS btn 
+    SET children_count_left = tbtn.children_count_left, children_count_right = tbtn.children_count_right
+    FROM tmp_binary_tree_nodes AS tbtn 
+    WHERE tbtn.id = btn.id"
+    Postgrex.Connection.query(pid, update_query)
+    Postgrex.Connection.query(pid, "DROP TABLE tmp_binary_tree_nodes")
     :success
   end
-  
+
   def receive_message(a, a) do
     :success
   end

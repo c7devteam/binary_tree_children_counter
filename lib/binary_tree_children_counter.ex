@@ -10,7 +10,7 @@ defmodule BinaryTreeChildrenCounter do
   def run do
     FindNodes.set_children_counts_to_zero
     all_nodes = FindNodes.find_all
-    agent = Enum.reduce(all_nodes, HashDict.new, fn (node, acc)-> 
+    agent = Enum.reduce(all_nodes, HashDict.new, fn (node, acc)->
       acc = HashDict.put(acc, node.id, node)
     end)
     root = FindNodes.find_root(agent)
